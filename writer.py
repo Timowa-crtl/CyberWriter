@@ -25,6 +25,9 @@ THEME = {
     "window_bg": "#1a1a1a",  # Window background color
 }
 
+# Default filename
+DEFAULT_FILENAME = "%Y%m%d_%H%M%S.txt"
+
 # Help text
 HELP_TEXT = "Ctrl+H: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+V: Load File (in browser)\n" "Ctrl+M: Email Current Text"
 
@@ -59,7 +62,7 @@ def save_file(event=None):
     filename = filename_var.get()
 
     if not filename:
-        filename = datetime.datetime.now().strftime("journal_%Y%m%d-%H%M%S.txt")
+        filename = datetime.datetime.now().strftime(DEFAULT_FILENAME)
         filename_var.set(filename)
 
     full_path = os.path.join(WRITING_DIR, filename)
@@ -77,7 +80,7 @@ def save_file(event=None):
 def new_file(event=None):
     """Create a new file"""
     text_widget.delete("1.0", tk.END)
-    new_filename = datetime.datetime.now().strftime("journal_%Y%m%d-%H%M%S.txt")
+    new_filename = datetime.datetime.now().strftime(DEFAULT_FILENAME)
     filename_var.set(new_filename)
 
     text_widget.focus_set()
@@ -183,7 +186,7 @@ root.grid_columnconfigure(0, weight=1)
 
 # File name tracking
 filename_var = tk.StringVar()
-filename_var.set(datetime.datetime.now().strftime("journal_%Y%m%d-%H%M%S.txt"))
+filename_var.set(datetime.datetime.now().strftime(DEFAULT_FILENAME))
 
 # Top bar with filename
 header_frame = tk.Frame(root)

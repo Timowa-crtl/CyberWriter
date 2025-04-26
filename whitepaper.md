@@ -9,4 +9,9 @@
 ## Features
 
 - sending written text via email, fast, no hassle
-- file browser, minimalistic,
+- save file
+- edit filename
+- delete file
+- file browser with simple functions:
+  - view all files
+  - select files to open in editor
