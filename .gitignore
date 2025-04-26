@@ -1,0 +1,7 @@
+# Ignore all files in writing_files directory
+writing_files/**
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
