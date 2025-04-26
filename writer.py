@@ -212,6 +212,10 @@ class CyberWriter:
         self.file_listbox.config(yscrollcommand=browser_scrollbar.set)
         self.file_listbox.bind("<Return>", self.load_selected_file)
 
+        # Add these two lines:
+        self.file_listbox.bind("<Control-v>", self.load_selected_file)
+        self.file_listbox.bind("<Control-d>", self.delete_selected_file)
+
     def _setup_key_bindings(self):
         """Set up all keyboard shortcuts."""
         # Application controls
@@ -368,6 +372,252 @@ class CyberWriter:
             self.root.mainloop()
         except Exception as ex:
             self._log_error(ex)
+
+    def toggle_file_browser(self, event=None):
+        """Toggle file browser visibility."""
+        if not self.browser_frame.winfo_ismapped():
+            # If browser not visible, populate and show it
+            self.populate_file_list()
+            self.browser_frame.place(relx=0.75, y=25, anchor="ne", width=250, height=200)
+            self.file_listbox.focus_set()
+        else:
+            # Hide browser if visible
+            self.browser_frame.place_forget()
+        self.text_widget.focus_set()
+
+    def populate_file_list(self):
+        """Populate the file list with available text files."""
+        self.file_listbox.delete(0, tk.END)
+        files = glob.glob(os.path.join(BASE_DIR, "*.txt"))
+        files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        for f in files:
+            base = os.path.basename(f)
+            if not base.startswith("journal_"):
+                continue
+            self.file_listbox.insert(tk.END, base)
+
+    def load_selected_file(self, event=None):
+        """Load the selected file from the file browser."""
+        selection = self.file_listbox.curselection()
+        if not selection:
+            return
+
+        selected_file = self.file_listbox.get(selection[0])
+
+        # Check for reserved names
+        reserved = {"file_frame_bg", "filename_bg"}
+        if selected_file in reserved:
+            print(f"Ignoring reserved file: {selected_file}")
+            return
+
+        full_path = os.path.join(BASE_DIR, selected_file)
+        if not os.path.exists(full_path):
+            print(f"File not found: {selected_file}")
+            return
+
+        try:
+            with open(full_path, "r") as f:
+                content = f.read()
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert("1.0", content)
+            self.filename_var.set(selected_file)
+            self.file_entry.config(state="normal")
+            self.file_entry.delete(0, tk.END)
+            self.file_entry.insert(0, selected_file)
+            self.finish_editing()
+            self.update_counts()
+
+            # Hide browser after loading
+            self.browser_frame.place_forget()
+        except Exception as e:
+            print(f"Error loading file '{selected_file}': {e}")
+        self.text_widget.focus_set()
+
+    def delete_selected_file(self, event=None):
+        """Delete the selected file."""
+        selection = self.file_listbox.curselection()
+        if not selection:
+            messagebox.showinfo("Delete File", "No file selected.")
+            return
+
+        selected_file = self.file_listbox.get(selection[0])
+        if selected_file != self.filename_var.get():
+            messagebox.showerror("Delete File", "Selected file does not match the current file.")
+            return
+
+        if messagebox.askyesno("Delete File", f"Delete '{selected_file}'?"):
+            full_path = os.path.join(BASE_DIR, selected_file)
+            try:
+                os.remove(full_path)
+                self.text_widget.delete("1.0", tk.END)
+                new_filename = datetime.datetime.now().strftime("journal_%Y%m%d-%H%M%S.txt")
+                self.filename_var.set(new_filename)
+                self.file_entry.config(state="normal")
+                self.file_entry.delete(0, tk.END)
+                self.file_entry.insert(0, new_filename)
+                self.finish_editing()
+                self.populate_file_list()
+                self.update_counts()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error deleting file: {e}")
+        self.text_widget.focus_set()
+
+    def toggle_help(self, event=None):
+        """Toggle help information display."""
+        if self.current_info_mode == "help":
+            self.info_frame.grid_remove()
+            self.current_info_mode = None
+        else:
+            for widget in self.info_frame.winfo_children():
+                widget.destroy()
+            help_lbl = tk.Label(self.info_frame, text=self.instructions_text, font=("Helvetica", 14), justify="left")
+            help_lbl.pack(padx=10, pady=10)
+            self.info_frame.grid()
+            self.current_info_mode = "help"
+        self.text_widget.focus_set()
+
+    def toggle_theme(self, event=None):
+        """Toggle theme selection panel."""
+        if self.current_info_mode == "theme":
+            self.info_frame.grid_remove()
+            self.current_info_mode = None
+            self.text_widget.focus_set()
+            return
+
+        for widget in self.info_frame.winfo_children():
+            widget.destroy()
+        self.info_frame.grid()
+        self.current_info_mode = "theme"
+
+        current_colors = self.themes.get(self.current_theme, self.themes["Dark"])
+        self.info_frame.configure(bg=current_colors["window_bg"])
+
+        instr_lbl = tk.Label(
+            self.info_frame,
+            text="Select Theme (Arrow keys, Enter to apply, Escape to cancel):",
+            font=("Helvetica", 14),
+            bg=current_colors["window_bg"],
+            fg=current_colors["text_fg"],
+        )
+        instr_lbl.pack(padx=10, pady=5)
+
+        theme_var_local = tk.StringVar(value=self.current_theme)
+        rb_widgets = []
+        for t in self.themes:
+            rb = tk.Radiobutton(
+                self.info_frame,
+                text=t,
+                variable=theme_var_local,
+                value=t,
+                font=("Helvetica", 14),
+                bg=current_colors["window_bg"],
+                fg=current_colors["text_fg"],
+                selectcolor=current_colors["window_bg"],
+                indicatoron=True,
+            )
+            rb.pack(anchor="w", padx=10, pady=5)
+            rb.bind("<Return>", lambda event, var=theme_var_local: self.apply_theme_selection(var))
+            rb.bind("<Escape>", lambda event: self.cancel_theme())
+            rb_widgets.append(rb)
+        if rb_widgets:
+            rb_widgets[0].focus_set()
+
+        self.info_frame.bind("<Return>", lambda event: self.apply_theme_selection(theme_var_local))
+        self.info_frame.bind("<Escape>", lambda event: self.cancel_theme())
+
+    def apply_theme_selection(self, theme_var):
+        """Apply the selected theme."""
+        selected = theme_var.get()
+        self.apply_theme(selected)
+        self.info_frame.grid_remove()
+        self.current_info_mode = None
+        self.text_widget.focus_set()
+        return "break"
+
+    def cancel_theme(self, event=None):
+        """Cancel theme selection."""
+        self.info_frame.grid_remove()
+        self.current_info_mode = None
+        self.text_widget.focus_set()
+        return "break"
+
+    def apply_theme(self, theme_name):
+        """Apply the specified theme to all widgets."""
+        if theme_name not in self.themes:
+            print(f"Theme '{theme_name}' not found.")
+            return
+        self.current_theme = theme_name
+        theme = self.themes[theme_name]
+        print(f"Applying theme: {theme_name}")
+
+        self.root.tk_setPalette(
+            background=theme["window_bg"],
+            foreground=theme["text_fg"],
+            activeBackground=theme["text_bg"],
+            highlightBackground=theme["window_bg"],
+        )
+        self.update_all_widgets(self.root, theme)
+        self.root.update_idletasks()
+
+    def update_all_widgets(self, widget, theme):
+        """Recursively update all widgets with the new theme."""
+        cls = widget.winfo_class()
+        try:
+            if cls in ("Frame", "TFrame", "LabelFrame", "Labelframe", "Canvas"):
+                widget.configure(bg=theme["window_bg"])
+            elif cls in ("Label", "Button", "Radiobutton", "Checkbutton"):
+                widget.configure(bg=theme["window_bg"], fg=theme["text_fg"])
+            elif cls in ("Text", "Entry"):
+                widget.configure(
+                    bg=theme["text_bg"],
+                    fg=theme["text_fg"],
+                    insertbackground=theme["text_fg"],
+                    disabledbackground=theme["filename_bg"],
+                    disabledforeground=theme["text_fg"],
+                )
+            elif cls == "Listbox":
+                widget.configure(bg=theme["text_bg"], fg=theme["text_fg"])
+            else:
+                widget.configure(bg=theme["window_bg"])
+        except Exception as e:
+            print(f"Could not update {widget} ({cls}): {e}")
+        for child in widget.winfo_children():
+            self.update_all_widgets(child, theme)
+
+    def email_text(self, event=None):
+        """Email the current text using SMTP configuration."""
+        content = self.text_widget.get("1.0", tk.END).strip()
+        filename = self.filename_var.get()
+
+        # Check if SMTP is configured
+        if not all([self.smtp_config.get("server"), self.smtp_config.get("sender_email"), self.smtp_config.get("sender_password"), self.smtp_config.get("recipient_email")]):
+            messagebox.showwarning("Email Setup", "Please configure SMTP settings in smtp_config.json")
+            return
+
+        # Prepare email
+        msg = MIMEText(content)
+        msg["Subject"] = f"Current Text: {filename}"
+        msg["From"] = self.smtp_config["sender_email"]
+        msg["To"] = self.smtp_config["recipient_email"]
+
+        try:
+            with smtplib.SMTP(self.smtp_config["server"], self.smtp_config["port"]) as server:
+                server.starttls()
+                server.login(self.smtp_config["sender_email"], self.smtp_config["sender_password"])
+                server.send_message(msg)
+            messagebox.showinfo("Email", "Email Sent")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send email: {e}")
+        self.text_widget.focus_set()
+
+    def shutdown_system(self, event=None):
+        """Shutdown the system (requires administrative privileges)."""
+        if messagebox.askyesno("Shutdown", "Are you sure you want to shut down the system?"):
+            if sys.platform.startswith("linux"):
+                subprocess.call(["sudo", "shutdown", "now"])
+            elif sys.platform.startswith("win"):
+                subprocess.call(["shutdown", "/s", "/t", "0"])
+        self.text_widget.focus_set()
 
     def _log_error(self, exception):
         """Log unhandled exceptions to an error file."""
