@@ -5,3 +5,6 @@ writing_files/**
 __pycache__/
 *.py[cod]
 *$py.class
+
+# User settings
+user_settings.json

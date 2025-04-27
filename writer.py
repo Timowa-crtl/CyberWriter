@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 import datetime
 import glob
+import json
 import os
 import smtplib
+import subprocess
+import sys
 import tkinter as tk
+import traceback
 from email.mime.text import MIMEText
-from tkinter import messagebox
+from tkinter import font, messagebox
 
-# Email configuration (fill these in to use email feature)
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = ""
-SENDER_PASSWORD = ""
-RECIPIENT_EMAIL = ""
+# SETTINGS FILE
+SETTINGS_FILE = "user_settings.json"
+
 
 # Path for saving files
 WRITING_DIR = "writing_files"
@@ -158,7 +159,7 @@ def email_text(event=None):
         return "break"
 
     msg = MIMEText(content)
-    msg["Subject"] = f"Current Text: {filename}"
+    msg["Subject"] = f"{filename}"
     msg["From"] = SENDER_EMAIL
     msg["To"] = RECIPIENT_EMAIL
 
@@ -174,6 +175,52 @@ def email_text(event=None):
     text_widget.focus_set()
     return "break"
 
+
+def load_email_settings():
+    default_settings = {"smtp_server": "", "smtp_port": 587, "sender_email": "", "sender_password": "", "recipient_email": ""}
+
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                settings = json.load(f)
+
+            # Merge default settings with loaded settings
+            for key in default_settings:
+                if key not in settings:
+                    settings[key] = default_settings[key]
+
+            print("Email settings loaded from file.")
+            return settings
+        except Exception as e:
+            print(f"Error loading email settings: {e}")
+            # Create a default settings file if loading fails
+            try:
+                with open(SETTINGS_FILE, "w") as f:
+                    json.dump(default_settings, f, indent=4)
+                print("Default email settings file created.")
+            except Exception as create_err:
+                print(f"Error creating default settings file: {create_err}")
+            return default_settings
+    else:
+        # Create default settings file if it doesn't exist
+        try:
+            with open(SETTINGS_FILE, "w") as f:
+                json.dump(default_settings, f, indent=4)
+            print("Default email settings file created.")
+        except Exception as create_err:
+            print(f"Error creating default settings file: {create_err}")
+        return default_settings
+
+
+# Load email settings
+email_settings = load_email_settings()
+
+# Use loaded settings
+SMTP_SERVER = email_settings.get("smtp_server", "")
+SMTP_PORT = email_settings.get("smtp_port", 587)
+SENDER_EMAIL = email_settings.get("sender_email", "")
+SENDER_PASSWORD = email_settings.get("sender_password", "")
+RECIPIENT_EMAIL = email_settings.get("recipient_email", "")
 
 # MAIN WINDOW SETUP
 root = tk.Tk()
