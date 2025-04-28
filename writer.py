@@ -16,7 +16,7 @@ SETTINGS_FILE = "user_settings.json"
 
 
 # Path for saving files
-WRITING_DIR = "writing_files"
+WRITING_DIR = "text_files"
 os.makedirs(WRITING_DIR, exist_ok=True)
 
 # Dark theme colors
@@ -30,7 +30,7 @@ THEME = {
 DEFAULT_FILENAME = "%Y%m%d_%H%M%S.txt"
 
 # Help text
-HELP_TEXT = "Ctrl+H: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+V: Load File (in browser)\n" "Ctrl+M: Email Current Text"
+HELP_TEXT = "Ctrl+T: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+V: Load File (in browser)\n" "Ctrl+M: Email Current Text\n" "Ctrl+Q: Show Text QR-Code"
 
 
 def apply_theme_to_widget(widget):
@@ -176,6 +176,12 @@ def email_text(event=None):
     return "break"
 
 
+def show_qr_code(event=None):
+    """Create and display QR Code to copy text"""
+    messagebox.showwarning("QR Code", "this Function is not available, yet")
+    return "break"
+
+
 def load_email_settings():
     default_settings = {"smtp_server": "", "smtp_port": 587, "sender_email": "", "sender_password": "", "recipient_email": ""}
 
@@ -189,7 +195,6 @@ def load_email_settings():
                 if key not in settings:
                     settings[key] = default_settings[key]
 
-            print("Email settings loaded from file.")
             return settings
         except Exception as e:
             print(f"Error loading email settings: {e}")
@@ -245,7 +250,7 @@ file_label.pack(side="left", padx=5)
 filename_label = tk.Label(header_frame, textvariable=filename_var, font=("Courier New", 12))
 filename_label.pack(side="left", fill="x", expand=True, padx=5)
 
-help_hint = tk.Label(header_frame, text="Ctrl+H for help", font=("Courier New", 10))
+help_hint = tk.Label(header_frame, text="Ctrl+T for help", font=("Courier New", 10))
 help_hint.pack(side="right", padx=5)
 
 # Main text area
@@ -285,8 +290,9 @@ apply_theme_to_widget(root)
 root.bind("<Control-s>", save_file)
 root.bind("<Control-n>", new_file)
 root.bind("<Control-f>", toggle_file_browser)
-root.bind("<Control-h>", toggle_help_panel)
+root.bind("<Control-t>", toggle_help_panel)
 root.bind("<Control-m>", email_text)
+root.bind("<Control-q>", show_qr_code)
 file_listbox.bind("<Return>", load_selected_file)
 file_listbox.bind("<Control-v>", load_selected_file)
 
