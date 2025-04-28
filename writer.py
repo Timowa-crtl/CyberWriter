@@ -6,10 +6,15 @@ import os
 import smtplib
 import subprocess
 import sys
+import tempfile
 import tkinter as tk
 import traceback
 from email.mime.text import MIMEText
 from tkinter import font, messagebox
+
+import PIL.ImageTk as ImageTk
+import qrcode
+from PIL import Image
 
 # SETTINGS FILE
 SETTINGS_FILE = "user_settings.json"
@@ -30,7 +35,9 @@ THEME = {
 DEFAULT_FILENAME = "%Y%m%d_%H%M%S.txt"
 
 # Help text
-HELP_TEXT = "Ctrl+T: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+V: Load File (in browser)\n" "Ctrl+M: Email Current Text\n" "Ctrl+Q: Show Text QR-Code"
+HELP_TEXT = (
+    "Ctrl+T: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+V: Load File (in browser)\n" "Ctrl+M: Email Current Text\n" "Ctrl+Q: Show QR-Code of Current Text"
+)
 
 
 def apply_theme_to_widget(widget):
@@ -185,14 +192,7 @@ def show_qr_code(event=None):
         return "break"
 
     try:
-        # Create a temporary file for the QR code
-        import tempfile
-
-        import PIL.ImageTk as ImageTk
-        import qrcode
-        from PIL import Image
-
-        # Create QR code - simplified without constants
+        # Create QR code
         qr_img = qrcode.make(content)
 
         # Create a temporary file for the image
@@ -210,12 +210,12 @@ def show_qr_code(event=None):
 
         # Open and display the image using PIL
         img = Image.open(temp_filename)
-        photo = ImageTk.PhotoImage(img)
+        # Use a global variable to prevent garbage collection
+        global photo_image
+        photo_image = ImageTk.PhotoImage(img)
 
         # Create a label to display the image
-        img_label = tk.Label(qr_window, image=photo, bg=THEME["window_bg"])
-        # Store reference at window level to prevent garbage collection
-        qr_window.photo = photo
+        img_label = tk.Label(qr_window, image=photo_image, bg=THEME["window_bg"])
         img_label.pack(padx=20, pady=20)
 
         # Add a note
