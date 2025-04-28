@@ -178,7 +178,82 @@ def email_text(event=None):
 
 def show_qr_code(event=None):
     """Create and display QR Code to copy text"""
-    messagebox.showwarning("QR Code", "this Function is not available, yet")
+    content = text_widget.get("1.0", tk.END).strip()
+
+    if not content:
+        messagebox.showwarning("QR Code", "No text to encode")
+        return "break"
+
+    try:
+        # Create a temporary file for the QR code
+        import tempfile
+
+        import PIL.ImageTk as ImageTk
+        import qrcode
+        from PIL import Image
+
+        # Create QR code - simplified without constants
+        qr_img = qrcode.make(content)
+
+        # Create a temporary file for the image
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        temp_filename = temp_file.name
+        temp_file.close()
+
+        # Save QR code image to temp file
+        qr_img.save(temp_filename)
+
+        # Display the QR code in a new window
+        qr_window = tk.Toplevel(root)
+        qr_window.title("Text QR Code")
+        qr_window.configure(bg=THEME["window_bg"])
+
+        # Open and display the image using PIL
+        img = Image.open(temp_filename)
+        photo = ImageTk.PhotoImage(img)
+
+        # Create a label to display the image
+        img_label = tk.Label(qr_window, image=photo, bg=THEME["window_bg"])
+        # Store reference at window level to prevent garbage collection
+        qr_window.photo = photo
+        img_label.pack(padx=20, pady=20)
+
+        # Add a note
+        note_label = tk.Label(qr_window, text="Scan this QR code to copy the text", font=("Courier New", 12), bg=THEME["window_bg"], fg=THEME["text_fg"])
+        note_label.pack(padx=10, pady=10)
+
+        # Add a close button
+        close_button = tk.Button(qr_window, text="Close", command=qr_window.destroy, bg=THEME["window_bg"], fg=THEME["text_fg"])
+        close_button.pack(pady=10)
+
+        # Center the window on screen
+        qr_window.update_idletasks()
+        width = qr_window.winfo_width()
+        height = qr_window.winfo_height()
+        x = (qr_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (qr_window.winfo_screenheight() // 2) - (height // 2)
+        qr_window.geometry(f"{width}x{height}+{x}+{y}")
+
+        # Configure the window to be modal
+        qr_window.transient(root)
+        qr_window.grab_set()
+
+        # Clean up the temp file when the window is closed
+        def on_close():
+            try:
+                os.unlink(temp_filename)
+            except:
+                pass
+            qr_window.destroy()
+
+        qr_window.protocol("WM_DELETE_WINDOW", on_close)
+        close_button.config(command=on_close)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to create QR code: {e}")
+        traceback.print_exc()
+
+    text_widget.focus_set()
     return "break"
 
 
@@ -282,7 +357,7 @@ browser_scrollbar = tk.Scrollbar(browser_frame, orient="vertical", command=file_
 browser_scrollbar.pack(side="right", fill="y")
 file_listbox.config(yscrollcommand=browser_scrollbar.set)
 
-# Apply dark theme to all widgets
+# Apply theme to all widgets
 root.tk_setPalette(background=THEME["window_bg"], foreground=THEME["text_fg"])
 apply_theme_to_widget(root)
 
