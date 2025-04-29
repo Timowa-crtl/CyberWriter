@@ -29,15 +29,16 @@ THEME = {
     "text_bg": "#1a1a1a",  # Text background color
     "text_fg": "#ffffff",  # Text foreground color
     "window_bg": "#1a1a1a",  # Window background color
+    "select_bg": "#006600",  # Selection background color
+    "select_fg": "#ffffff",  # Selection foreground color
 }
+
 
 # Default filename
 DEFAULT_FILENAME = "%Y%m%d_%H%M%S.txt"
 
 # Help text
-HELP_TEXT = (
-    "Ctrl+T: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+V: Load File (in browser)\n" "Ctrl+M: Email Current Text\n" "Ctrl+Q: Show QR-Code of Current Text"
-)
+HELP_TEXT = "Ctrl+T: Toggle Help\n" "Ctrl+S: Save\n" "Ctrl+N: New File\n" "Ctrl+F: File Browser\n" "Ctrl+M: Email Current Text\n" "Ctrl+Q: Show QR-Code of Current Text"
 
 
 def apply_theme_to_widget(widget):
@@ -50,7 +51,7 @@ def apply_theme_to_widget(widget):
         elif cls in ("Label", "Button"):
             widget.configure(bg=THEME["window_bg"], fg=THEME["text_fg"])
         elif cls in ("Text", "Entry"):
-            widget.configure(bg=THEME["text_bg"], fg=THEME["text_fg"], insertbackground=THEME["text_fg"])
+            widget.configure(bg=THEME["text_bg"], fg=THEME["text_fg"], insertbackground=THEME["text_fg"], selectbackground=THEME["select_bg"], selectforeground=THEME["select_fg"])
         elif cls == "Listbox":
             widget.configure(bg=THEME["text_bg"], fg=THEME["text_fg"])
         elif cls == "Scrollbar":
@@ -369,7 +370,6 @@ root.bind("<Control-t>", toggle_help_panel)
 root.bind("<Control-m>", email_text)
 root.bind("<Control-q>", show_qr_code)
 file_listbox.bind("<Return>", load_selected_file)
-file_listbox.bind("<Control-v>", load_selected_file)
 
 # Start the app with focus on text
 text_widget.focus_set()
